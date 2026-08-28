@@ -1,0 +1,312 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>26도쿄 · Hana 맛집지도</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --ink: #2b2620;
+    --sub: #7a6f60;
+    --line: #e6e0d4;
+    --accent: #b5433c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    padding: 24px 24px 12px;
+    text-align: center;
+  }
+  header h1 { font-size: 24px; letter-spacing: -0.5px; }
+  header h1 .tk { color: var(--accent); }
+  header p { color: var(--sub); font-size: 13px; margin-top: 5px; }
+  header p a { color: #1a6fb5; }
+  .layout {
+    display: flex;
+    gap: 16px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 16px 24px;
+    height: calc(100vh - 100px);
+    height: calc(100dvh - 100px);
+    min-height: 480px;
+  }
+  #map {
+    flex: 1.2;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    min-width: 0;
+  }
+  .side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--card); color: var(--sub);
+    cursor: pointer; transition: all .15s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .list {
+    flex: 1; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px;
+    padding-right: 4px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateX(-2px); }
+  .card.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(181,67,60,.15); }
+  .card .top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .card .cat {
+    font-size: 11px; font-weight: 700;
+    color: var(--accent);
+    background: rgba(181,67,60,.09);
+    padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+  }
+  .card .name { font-weight: 700; font-size: 15px; }
+  .card .memo { font-size: 13px; color: var(--sub); line-height: 1.5; }
+  .card .links { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .card .links a {
+    font-size: 12px; color: #1a6fb5; text-decoration: none;
+    border: 1px solid #cfe2f0; background: #f2f8fc;
+    border-radius: 6px; padding: 3px 8px;
+  }
+  .card .links a:hover { background: #e2eff8; }
+  .marker-pin {
+    width: 30px; height: 30px;
+    border-radius: 50% 50% 50% 0;
+    background: var(--accent);
+    transform: rotate(-45deg);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .marker-pin span {
+    transform: rotate(45deg);
+    color: #fff; font-size: 12px; font-weight: 700;
+  }
+  .marker-pin.sel {
+    background: #1a6fb5;
+    transform: rotate(-45deg) scale(1.25);
+    z-index: 1000;
+  }
+  .marker-wrap { animation: pop .45s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes pop {
+    0% { transform: scale(0) translateY(-20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marker-wrap { animation: none; }
+  }
+  .leaflet-popup-content { font-family: inherit; font-size: 13px; line-height: 1.5; }
+  .leaflet-popup-content b { font-size: 14px; }
+  .leaflet-popup-content a { color: #1a6fb5; }
+  @media (max-width: 820px) {
+    header { padding: 16px 16px 8px; }
+    header h1 { font-size: 20px; }
+    header p { font-size: 12px; }
+    .layout { flex-direction: column; height: auto; min-height: 0; padding: 0 10px 20px; gap: 10px; }
+    #map { height: 48vh; height: 48dvh; flex: none; }
+    .side { flex: none; }
+    .filters {
+      position: sticky; top: 0; z-index: 500;
+      background: var(--bg); padding: 6px 0;
+      overflow-x: auto; flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+    .chip { flex: 0 0 auto; padding: 7px 14px; }
+    .list { overflow: visible; }
+    .card { padding: 14px; }
+    .card .links a { padding: 6px 12px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>⛩️ <span class="tk">26도쿄</span> · Hana 맛집지도</h1>
+  <p>카드를 클릭하면 지도가 그 위치로 이동해요 · 📍 버튼은 구글맵으로 연결 · <a href="index.html">📖 일정 가이드로 돌아가기</a></p>
+</header>
+<div class="layout">
+  <div id="map"></div>
+  <div class="side">
+    <div class="filters" id="filters"></div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// 좌표: 웹 검색으로 확인한 주소 기준. "위치 대략" 표기된 곳은 구글맵 링크로 최종 확인 추천.
+const PLACES = [
+  { num: 1,  cat: "숙소", name: "ddd hotel", memo: "바쿠로초 숙소 (5/31~6/4). JR소부쾌속 바쿠로초 / 신주쿠선 바쿠로요코야마 / 아사쿠사선 히가시니혼바시 3개 역 이용 가능. 이마한 닌교초 본점까지 도보 15분.", q: "ddd hotel 東京", lat: 35.6929, lng: 139.7838 },
+  { num: 2,  cat: "스키야키", name: "닌교초 이마한 (도쿄 지점 전체)", memo: "노포 스키야키·와규. ⚠ 예약 없이 가면 대기 꽤 김 — 미리 예약이 안전, 못 했으면 11시 오픈런. 일정상 방문 예정은 우에노히로코지점(6/1 11:00). 본점(닌교초)은 호텔 도보권. 자리 없으면 대안 → 키소지 우에노 / 샤브샤브 하치노키.", branches: [
+      { bn: "우에노히로코지점 ★예정", q: "人形町今半 上野広小路店", lat: 35.7062, lng: 139.7727 },
+      { bn: "닌교초 본점 (호텔 도보권)", q: "人形町今半 人形町本店", lat: 35.6857, lng: 139.7832 },
+      { bn: "신주쿠 다이이치세이메이빌딩점", q: "人形町今半 新宿第一生命ビル店", lat: 35.6907, lng: 139.6910 },
+      { bn: "도쿄가든테라스 기오이초점", q: "人形町今半 東京ガーデンテラス紀尾井町店", lat: 35.6797, lng: 139.7373 },
+      { bn: "하네다공항 T3점", q: "人形町今半 羽田空港第3ターミナル店", lat: 35.5449, lng: 139.7684 },
+      { bn: "하네다공항 T1점", q: "人形町今半 羽田空港第1ターミナル店", lat: 35.5493, lng: 139.7846 },
+    ],
+    extra: [
+      { label: "대안: 키소지 우에노", q: "木曽路 上野店" },
+      { label: "대안: 하치노키 우에노", q: "しゃぶしゃぶ 八の木 上野" },
+    ] },
+  { num: 3,  cat: "소바", name: "소바마에 야마토", memo: "아자부다이 힐스 타워플라자 3층. '소바 전에 안주와 사케' 스타일 — 사시미·텐푸라 후 주와리소바 마무리. ⚠ 예약 안 하면 꽤 기다리거나 못 들어갈 수 있음 — 예약 필수급. 1일차 저녁.", q: "蕎麦前 山都 麻布台ヒルズ", lat: 35.6606, lng: 139.7416 },
+  { num: 4,  cat: "스프카레", name: "로지우라 커리 사무라이 (시모키타자와)", memo: "삿포로식 스프카레 인기점. ⚠ 임시휴업 메모 있음 — 방문 전 영업 확인! 휴업이면 포니피리카로. ※위치 대략.", q: "Rojiura Curry SAMURAI 下北沢", lat: 35.6608, lng: 139.6681 },
+  { num: 5,  cat: "스프카레", name: "포니피리카", memo: "사무라이 휴업 시 대안 스프카레 (시모키타자와). ※위치 대략.", q: "ポニピリカ 下北沢", lat: 35.6606, lng: 139.6692 },
+  { num: 6,  cat: "몬자·타코야키", name: "소자이 & 몬자 사토", memo: "요요기하치만 반찬가게 겸 몬자야키. 아사쿠사식 몬자 + 눌은 부분으로 센베이 만들어 먹기. ⚠ 테이블 3개뿐 — 예약 안 하면 못 먹을 확률 높음, 예약 필수. 3일차 저녁. ※위치 대략.", q: "おそうざいと煎餅もんじゃ さとう", lat: 35.6684, lng: 139.6892 },
+  { num: 7,  cat: "몬자·타코야키", name: "와라타코 WaraTako", memo: "캣스트리트(하라주쿠 표참도) 타코야키. 8개 750엔, 서서 먹는 스타일.", q: "笑たこ 原宿表参道店", lat: 35.6664, lng: 139.7053 },
+  { num: 8,  cat: "카페·킷사", name: "코메다 커피 KOMEDA'S (동선 근처 지점)", memo: "전국 체인 킷사텐 — 아침 커피 시키면 토스트 주는 '모닝' 문화 체험용. 도쿄에 지점이 수십 곳이라 동선 근처만 표시: 아키하바라점(호텔에서 한 정거장) / 유라쿠초점(긴자 옆). 다른 데서도 구글맵에 'コメダ珈琲店' 검색하면 근처 지점이 다 나옴.", branches: [
+      { bn: "아키하바라점", q: "コメダ珈琲店 神田花岡町", lat: 35.6989, lng: 139.7717 },
+      { bn: "유라쿠초점", q: "コメダ珈琲店 有楽町 読売会館", lat: 35.6751, lng: 139.7637 },
+    ],
+    extra: [
+      { label: "전체 지점 검색", q: "コメダ珈琲店 東京" },
+    ] },
+  { num: 9,  cat: "카페·킷사", name: "긴자 웨스트 본점", memo: "1947년 창업 클래식 킷사, 리프파이 유명. 자리 없으면 → 츠바키야 / 토리코로루.", q: "銀座ウエスト本店", lat: 35.6695, lng: 139.7602,
+    extra: [
+      { label: "츠바키야", q: "椿屋珈琲店 銀座" },
+      { label: "토리코로루", q: "トリコロール本店 銀座" },
+    ] },
+  { num: 10, cat: "카페·킷사", name: "하브스 HARBS (도쿄 지점 전체)", memo: "밀크 크레이프 케이크의 원조격. 일정상 가까운 건 마루비루점(도쿄역 마루노우치 북쪽 출구 도보 1분, 3층) — 웨이팅 있으면 유라쿠초 루미네점이 가까운 대안.", branches: [
+      { bn: "마루비루점 ★동선", q: "HARBS 丸ビル店", lat: 35.6810, lng: 139.7634 },
+      { bn: "루미네 유라쿠초점", q: "HARBS ルミネ有楽町店", lat: 35.6742, lng: 139.7631 },
+      { bn: "루미네에스트 신주쿠점", q: "HARBS ルミネエスト新宿店", lat: 35.6919, lng: 139.7008 },
+      { bn: "롯폰기힐스점", q: "HARBS 六本木ヒルズ店", lat: 35.6595, lng: 139.7290 },
+      { bn: "이케부쿠로 파르코점", q: "HARBS 池袋パルコ店", lat: 35.7301, lng: 139.7107 },
+    ] },
+  { num: 11, cat: "카페·킷사", name: "킷사 레이 KISSA RAY", memo: "푸딩+커피 조합 1인 킷사텐 (시모키타자와 北沢3-20-13, reload 근처). 9~17시, 목 휴무.", q: "KISSA RAY 下北沢", lat: 35.6641, lng: 139.6684 },
+  { num: 12, cat: "카페·킷사", name: "브리지 커피 & 아이스크림", memo: "호텔(ddd hotel) 도보권 바쿠로초, 파란 타일 카페. 평일 8시 오픈 — 마지막 날 아침 커피 (6/4 8:00).", q: "Bridge COFFEE & ICECREAM", lat: 35.6931, lng: 139.7822 },
+  { num: 13, cat: "디저트·화과자", name: "SISIRI 에비스점", memo: "홋카이도 재료 '북화과자' 카페. 유키모치·오하기·글루텐프리 도라야키. 17:00 마감, 에비스역 도보 10분 주택가. ※위치 대략.", q: "SISIRI 恵比寿店", lat: 35.6447, lng: 139.7186 },
+  { num: 14, cat: "디저트·화과자", name: "긴자 빵·디저트·초콜릿 리스트", memo: "7곳 묶음 (마커는 긴자 중심): 아케보노 딸기모찌 / 스즈카케 딸기모찌 / 루루메리즈 초콜릿(선물용) / 기무라야 단팥빵 / 쿠야 모나카(⚠ 예약 판매 위주 — 예약 없인 당일 구매 거의 불가) / 팡메종 소금빵 / 키쿠노야.", q: "銀座あけぼの 本店", lat: 35.6717, lng: 139.7650,
+    extra: [
+      { label: "아케보노", q: "銀座あけぼの 本店" },
+      { label: "스즈카케", q: "鈴懸 銀座" },
+      { label: "루루메리즈", q: "RURU MARY'S 銀座" },
+      { label: "기무라야", q: "木村屋總本店 銀座本店" },
+      { label: "쿠야", q: "空也 銀座" },
+      { label: "팡메종", q: "パンメゾン 銀座" },
+      { label: "키쿠노야", q: "銀座菊廼舎" },
+    ] },
+  { num: 15, cat: "디저트·화과자", name: "미츠코시 니혼바시 특별식당", memo: "본점 7층 특별식당 — '마론 샹테리'가 유명. 대기 있을 수 있음.", q: "日本橋三越本店 特別食堂", lat: 35.6866, lng: 139.7738 },
+  { num: 16, cat: "디저트·화과자", name: "이모야 킨지로", memo: "갓 튀긴 이모켄피(고구마 스틱) — 니혼바시. ※위치 대략.", q: "日本橋 芋屋金次郎", lat: 35.6871, lng: 139.7729 },
+  { num: 17, cat: "빵·도넛", name: "아임 도넛? I'm donut? 오모테산도", memo: "도쿄 생도넛 붐의 주인공. 예약 없이 줄로만 — 피크엔 30분~1시간 웨이팅 각오, 오전 추천. ※위치 대략.", q: "I'm donut? 表参道", lat: 35.6672, lng: 139.7071 },
+  { num: 18, cat: "빵·도넛", name: "푸미그라피코 fumigrafico", memo: "1인 사워도우 마이크로 베이커리 (요요기하치만 元代々木町9-6). 15시 오픈 / 일·월·목 휴무 — 6/2(화)는 영업일 ✅.", q: "fumigrafico 代々木八幡", lat: 35.6690, lng: 139.6885 },
+  { num: 19, cat: "과자·간식", name: "도쿄역 캘비 플러스", memo: "도쿄역 일번가 B1 '도쿄 오카시랜드'. 갓 튀긴 감자 스낵 + 한정판 과자 선물.", q: "東京おかしランド", lat: 35.6790, lng: 139.7689 },
+];
+
+const gmap = q => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+
+const map = L.map('map').setView([35.675, 139.73], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+}).addTo(map);
+
+const listEl = document.getElementById('list');
+const markers = {};
+
+// 지점 목록으로 정규화 (단일 지점도 배열로)
+const pointsOf = p => p.branches || [{ bn: null, q: p.q, lat: p.lat, lng: p.lng }];
+
+PLACES.forEach((p, i) => {
+  markers[p.num] = pointsOf(p).map(b => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="marker-wrap" style="animation-delay:${i * 70}ms"><div class="marker-pin" data-num="${p.num}"><span>${p.num}</span></div></div>`,
+      iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30]
+    });
+    const m = L.marker([b.lat, b.lng], { icon }).addTo(map);
+    const title = b.bn ? `${p.name} — ${b.bn}` : p.name;
+    m.bindPopup(`<b>${title}</b><br>${p.memo}<br><a href="${gmap(b.q)}" target="_blank">📍 구글맵에서 열기</a>`);
+    m.on('click', () => highlight(p.num));
+    return m;
+  });
+
+  const links = pointsOf(p).map(b =>
+    `<a href="${gmap(b.q)}" target="_blank" onclick="event.stopPropagation()">📍 ${b.bn || '구글맵'}</a>`
+  ).join('') + (p.extra || []).map(e =>
+    `<a href="${gmap(e.q)}" target="_blank" onclick="event.stopPropagation()">📍 ${e.label}</a>`
+  ).join('');
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'card-' + p.num;
+  card.innerHTML = `
+    <div class="top"><span class="cat">${p.cat}</span><span class="name">${p.name}</span></div>
+    <div class="memo">${p.memo}</div>
+    <div class="links">${links}</div>`;
+  card.addEventListener('click', () => {
+    const pts = pointsOf(p);
+    if (pts.length > 1) {
+      map.flyToBounds(L.latLngBounds(pts.map(b => [b.lat, b.lng])), { padding: [60, 60], duration: 0.8 });
+    } else {
+      map.flyTo([pts[0].lat, pts[0].lng], 16, { duration: 0.8 });
+      markers[p.num][0].openPopup();
+    }
+    highlight(p.num);
+  });
+  listEl.appendChild(card);
+});
+
+// 처음 열 때 모든 마커(이마한 전 지점 포함)가 한 화면에 들어오게
+map.fitBounds(
+  L.latLngBounds(PLACES.flatMap(p => pointsOf(p).map(b => [b.lat, b.lng]))),
+  { padding: [40, 40] }
+);
+
+// 카테고리 필터
+const cats = ['ALL', ...new Set(PLACES.map(p => p.cat))];
+const filtersEl = document.getElementById('filters');
+cats.forEach(cat => {
+  const chip = document.createElement('button');
+  chip.className = 'chip' + (cat === 'ALL' ? ' on' : '');
+  chip.textContent = cat === 'ALL' ? '전체' : cat;
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+    PLACES.forEach(p => {
+      const show = cat === 'ALL' || p.cat === cat;
+      document.getElementById('card-' + p.num).style.display = show ? '' : 'none';
+      markers[p.num].forEach(m => { if (show) { m.addTo(map); } else { map.removeLayer(m); } });
+    });
+    const pts = PLACES.filter(p => cat === 'ALL' || p.cat === cat)
+      .flatMap(p => pointsOf(p).map(b => [b.lat, b.lng]));
+    if (pts.length) {
+      map.flyToBounds(L.latLngBounds(pts), { padding: [50, 50], maxZoom: 15, duration: 0.6 });
+    }
+  });
+  filtersEl.appendChild(chip);
+});
+
+function highlight(num) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+  const c = document.getElementById('card-' + num);
+  c.classList.add('active');
+  c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  document.querySelectorAll('.marker-pin').forEach(el =>
+    el.classList.toggle('sel', el.dataset.num === String(num)));
+}
+</script>
+</body>
+</html>
+
