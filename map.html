@@ -118,6 +118,17 @@
   @media (prefers-reduced-motion: reduce) {
     .marker-wrap { animation: none; }
   }
+  #lightbox {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.75); z-index: 2000;
+    align-items: center; justify-content: center;
+    cursor: zoom-out;
+  }
+  #lightbox.show { display: flex; }
+  #lightbox img {
+    max-width: min(92vw, 420px); max-height: 80vh;
+    border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
   .leaflet-popup-content { font-family: inherit; font-size: 13px; line-height: 1.5; }
   .leaflet-popup-content b { font-size: 14px; }
   .leaflet-popup-content a { color: #1a6fb5; }
@@ -153,6 +164,8 @@
     <div class="list" id="list"></div>
   </div>
 </div>
+
+<div id="lightbox" onclick="this.classList.remove('show')"><img id="lightbox-img" alt="일루미네이션 예시 사진"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -239,6 +252,31 @@ const PLACES = [
   { num: 32, cat: "명소", name: "시부야 스카이 SHIBUYA SKY", memo: "스크램블 스퀘어 옥상 229m 전망대 — 도쿄타워·후지산까지 보이는 요즘 제일 핫한 야경. ⚠ 일몰 시간대는 예매 필수(공식 사이트, 날짜·시간 지정제).", q: "SHIBUYA SKY", lat: 35.6585, lng: 139.7024 },
   { num: 33, cat: "명소", name: "메이지신궁 明治神宮", memo: "도심 속 거대한 숲과 대형 도리이. 3일차 오모테산도·하라주쿠 동선과 붙어 있음(하라주쿠역 바로 앞). 이른 아침이 제일 좋음.", q: "明治神宮", lat: 35.6764, lng: 139.6993 },
   { num: 34, cat: "명소", name: "도쿄타워 東京タワー", memo: "밤엔 연중 라이트업(계절·이벤트별 색 변경) — 6월 여행이라 겨울 일루미네이션은 없지만 타워 야경은 언제나 OK. 프린스 시바공원·조조지·아자부다이 힐스와 한 동선.", q: "東京タワー", lat: 35.6586, lng: 139.7454 },
+  { num: 35, cat: "명소", name: "도쿄 스카이트리", memo: "634m 전탑 — 센소지에서 도보 20분(스미다강 건너)이라 아사쿠사와 묶기 좋음. 전망대는 시부야 스카이와 겹치니 밖에서 올려다보는 것만으로도 충분.", q: "東京スカイツリー", lat: 35.7101, lng: 139.8107 },
+  { num: 36, cat: "명소", name: "츠키지 장외시장", memo: "아침 먹거리 시장 — 타마고야키·해산물 꼬치·참치덮밥. 긴자에서 10분, 오전(9~11시)이 활기 최고. 대부분 오후 2시 전에 닫음.", q: "築地場外市場", lat: 35.6654, lng: 139.7707 },
+  { num: 37, cat: "당일치기", name: "가마쿠라 鎌倉", memo: "옛 수도 감성의 바닷가 소도시 — 대불(고토쿠인), 츠루가오카 하치만구, 코마치도리 먹거리, 에노덴 해안 전철. 도쿄역에서 JR요코스카선 직통 약 1시간, 교통패스 없이도 부담 없는 당일치기. 반나절~하루 코스.", q: "鎌倉駅", lat: 35.3192, lng: 139.5467, far: true,
+    extra: [
+      { label: "가마쿠라 대불", q: "高徳院 鎌倉大仏" },
+      { label: "츠루가오카 하치만구", q: "鶴岡八幡宮" },
+      { label: "코마치도리", q: "小町通り 鎌倉" },
+      { label: "에노시마", q: "江の島" },
+    ] },
+  { num: 38, cat: "일루미네이션", name: "롯폰기 케야키자카 ⭐", memo: "일루미네이션 원탑 — 파란 LED 가로수길 끝에 도쿄타워가 걸리는 그 장면. 언덕 위(롯폰기 힐스 쪽)에서 내려다보며 찍기. 시즌: 11월 중순~12월 25일경. 📷 사진 버튼으로 예시 컷 보기.", q: "六本木けやき坂通り", lat: 35.6593, lng: 139.7288, photo: "keyakizaka.jpg" },
+  { num: 39, cat: "일루미네이션", name: "마루노우치 나카도리", memo: "샴페인골드 가로수길, 도쿄역 바로 앞. 시즌: 11월~2월 중순. 시즌엔 신마루노우치 테라스와 묶으면 완벽.", q: "丸の内仲通り", lat: 35.6796, lng: 139.7636 },
+  { num: 40, cat: "일루미네이션", name: "도쿄 미드타운 (롯폰기)", memo: "잔디광장 일대 윈터 라이츠. 시즌: 11월 말~12월 25일경. 케야키자카에서 도보 10분이라 한 코스.", q: "東京ミッドタウン", lat: 35.6657, lng: 139.7310 },
+  { num: 41, cat: "일루미네이션", name: "시부야 아오노도쿠츠 靑の洞窟", memo: "시부야~요요기공원 느티나무길이 파란 빛 터널로 변신. 시즌: 12월(해에 따라 유동). 시부야 동선과 연결.", q: "青の洞窟 SHIBUYA 渋谷公園通り", lat: 35.6675, lng: 139.6985 },
+  { num: 42, cat: "일루미네이션", name: "에비스 가든플레이스", memo: "바카라 크리스털 샹들리에 + 광장 일루미네이션. 시즌: 11월~1월 초. 1일차 에비스 동선 근처.", q: "恵比寿ガーデンプレイス", lat: 35.6426, lng: 139.7135 },
+  { num: 43, cat: "당일치기", name: "후지산·가와구치코 富士山", memo: "후지산 뷰 당일치기의 정석. 신주쿠에서 특급 후지카이유(富士回遊) 직통 약 1시간 50분 or 고속버스 2시간. 코스: 아라쿠라야마 센겐공원(츄레이토 탑+후지산 그 사진) → 가와구치코 오이시공원·로프웨이 → 오시노핫카이. 클룩/KKday 버스투어로 한 번에 도는 것도 편함. ⚠ 최고 시즌은 겨울(12~2월) — 공기가 맑고 눈 덮인 후지산이 제일 또렷함. 6월은 구름 잦아 복불복이니 맑은 날 아침만 노리고, 제대로 보려면 겨울 재방문이 정답.", q: "河口湖駅", lat: 35.4966, lng: 138.7647, far: true,
+    extra: [
+      { label: "아라쿠라야마 센겐공원", q: "新倉山浅間公園" },
+      { label: "오이시공원", q: "大石公園 河口湖" },
+      { label: "오시노핫카이", q: "忍野八海" },
+    ] },
+  { num: 44, cat: "당일치기", name: "시즈오카 静岡", memo: "차밭+후지산 조합의 여유로운 당일치기. 도쿄역에서 신칸센 약 1시간. 코스: 니혼다이라(차밭 너머 후지산 전망) → 미호노마츠바라(소나무 해변+후지산) → 스루가만 해산물(사쿠라새우·시라스덮밥). 가마쿠라·후지산보다 한산한 게 장점. ⚠ 역시 후지산 뷰는 맑은 날 한정.", q: "静岡駅", lat: 34.9719, lng: 138.3897, far: true,
+    extra: [
+      { label: "니혼다이라", q: "日本平 夢テラス" },
+      { label: "미호노마츠바라", q: "三保の松原" },
+    ] },
 ];
 
 const gmap = q => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
@@ -272,7 +310,8 @@ PLACES.forEach((p, i) => {
     `<a href="${gmap(b.q)}" target="_blank" onclick="event.stopPropagation()">📍 ${b.bn || '구글맵'}</a>`
   ).join('') + (p.extra || []).map(e =>
     `<a href="${gmap(e.q)}" target="_blank" onclick="event.stopPropagation()">📍 ${e.label}</a>`
-  ).join('');
+  ).join('') + (p.photo ?
+    `<a href="#" onclick="event.stopPropagation();event.preventDefault();showPhoto('${p.photo}')">📷 사진 보기</a>` : '');
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -286,7 +325,7 @@ PLACES.forEach((p, i) => {
     if (pts.length > 1) {
       map.flyToBounds(L.latLngBounds(pts.map(b => [b.lat, b.lng])), { padding: [60, 60], duration: 0.8 });
     } else {
-      map.flyTo([pts[0].lat, pts[0].lng], 16, { duration: 0.8 });
+      map.flyTo([pts[0].lat, pts[0].lng], p.far ? 12 : 16, { duration: 0.8 });
       markers[p.num][0].openPopup();
     }
     highlight(p.num);
@@ -294,11 +333,16 @@ PLACES.forEach((p, i) => {
   listEl.appendChild(card);
 });
 
-// 처음 열 때 모든 마커(이마한 전 지점 포함)가 한 화면에 들어오게
+// 처음 열 때 도쿄 시내 마커(이마한 전 지점 포함)가 한 화면에 들어오게 — 가마쿠라·후지산 등 원거리는 제외
 map.fitBounds(
-  L.latLngBounds(PLACES.flatMap(p => pointsOf(p).map(b => [b.lat, b.lng]))),
+  L.latLngBounds(PLACES.filter(p => !p.far).flatMap(p => pointsOf(p).map(b => [b.lat, b.lng]))),
   { padding: [40, 40] }
 );
+
+function showPhoto(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
 
 // 카테고리 필터
 const cats = ['ALL', ...new Set(PLACES.map(p => p.cat))];
@@ -315,7 +359,7 @@ cats.forEach(cat => {
       document.getElementById('card-' + p.num).style.display = show ? '' : 'none';
       markers[p.num].forEach(m => { if (show) { m.addTo(map); } else { map.removeLayer(m); } });
     });
-    const pts = PLACES.filter(p => cat === 'ALL' || p.cat === cat)
+    const pts = PLACES.filter(p => (cat === 'ALL' || p.cat === cat) && !(cat === 'ALL' && p.far))
       .flatMap(p => pointsOf(p).map(b => [b.lat, b.lng]));
     if (pts.length) {
       map.flyToBounds(L.latLngBounds(pts), { padding: [50, 50], maxZoom: 15, duration: 0.6 });
